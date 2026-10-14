@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Brief thiết kế</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+/* Biểu mẫu brief thiết kế – Telegram Mini App. Màu theo giao diện Telegram (themeParams), dự phòng nền tối */
+:root{
+  --bg:var(--tg-theme-bg-color,#17191c); --sec:var(--tg-theme-secondary-bg-color,#1f2226); --fg:var(--tg-theme-text-color,#e9ecef);
+  --hint:var(--tg-theme-hint-color,#8b949e); --link:var(--tg-theme-link-color,#d97757); --btn:var(--tg-theme-button-color,#d97757);
+  --btnfg:var(--tg-theme-button-text-color,#fff); --line:color-mix(in srgb,var(--hint) 30%,transparent);
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.5 -apple-system,"Segoe UI",Roboto,sans-serif;padding:12px 14px 90px}
+h1{font-size:20px;margin:4px 0 2px} .sub{color:var(--hint);font-size:13px;margin:0 0 12px}
+details{background:var(--sec);border-radius:12px;margin:10px 0;padding:0 12px}
+summary{font-weight:600;padding:12px 0;cursor:pointer;list-style:none;display:flex;justify-content:space-between;gap:8px}
+summary::-webkit-details-marker{display:none}
+summary .n{color:var(--hint);font-weight:400;font-size:13px}
+.body{padding:0 0 12px}
+label{display:block;font-size:13px;color:var(--hint);margin:10px 0 4px}
+input[type=text],input[type=number],input[type=tel],textarea,select{width:100%;background:var(--bg);color:var(--fg);border:1px solid var(--line);border-radius:8px;padding:9px 10px;font:inherit}
+textarea{min-height:64px;resize:vertical}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{border:1px solid var(--line);background:var(--bg);color:var(--fg);border-radius:999px;padding:6px 11px;font-size:13.5px;cursor:pointer;user-select:none}
+.chip.on{background:var(--btn);color:var(--btnfg);border-color:var(--btn)}
+.chip small{opacity:.75}
+.desc{font-size:12.5px;color:var(--hint);margin-top:6px;min-height:1em}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.mau{display:grid;grid-template-columns:44px 1fr auto;gap:8px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line)}
+.mau input[type=color]{width:44px;height:44px;border:none;border-radius:10px;padding:0;background:none}
+.mau .hex{font-family:ui-monospace,Consolas,monospace;font-size:13px}
+.mau .y{font-size:12px;color:var(--hint)}
+.mau .roles{display:flex;gap:4px;flex-wrap:wrap;margin-top:4px}
+.mau .roles .chip{padding:3px 8px;font-size:12px}
+.x{background:none;border:none;color:var(--hint);font-size:20px;cursor:pointer;padding:4px 8px}
+.add{margin-top:10px;width:100%;border:1px dashed var(--line);background:none;color:var(--link);border-radius:8px;padding:9px;font:inherit;cursor:pointer}
+.pal{display:flex;gap:2px;height:18px;border-radius:5px;overflow:hidden;flex:1}
+.pal i{flex:1}
+.palrow{display:flex;align-items:center;gap:8px;padding:6px 0;cursor:pointer;font-size:13px}
+.palrow span{width:46%}
+.tips p{font-size:12.5px;color:var(--hint);margin:4px 0}
+.note{font-size:12.5px;color:var(--hint);background:var(--bg);border-radius:8px;padding:8px 10px;margin-top:8px}
+#send{display:none;position:fixed;left:12px;right:12px;bottom:12px;background:var(--btn);color:var(--btnfg);border:none;border-radius:12px;padding:14px;font:600 16px inherit}
+#err{color:#e5534b;font-size:13px;margin-top:8px}
+</style>
+</head>
+<body>
+<h1>Brief thiết kế nội thất</h1>
+<p class="sub">Điền nhanh – AI dựa vào thông tin và bảng màu để tạo ảnh minh hoạ cho từng khu vực.</p>
+
+<details open><summary>1. Thông tin chung <span class="n" id="n1"></span></summary><div class="body">
+  <label for="ten">Tên khách hàng / dự án</label><input id="ten" type="text" maxlength="60" placeholder="vd: Anh Minh – căn hộ Vinhomes">
+  <label>Loại công trình</label><div class="chips" data-one="loai"></div>
+  <div class="row2">
+    <div><label for="dt">Diện tích (m²)</label><input id="dt" type="number" min="0" inputmode="numeric"></div>
+    <div><label for="nguoi">Số người ở</label><input id="nguoi" type="number" min="0" inputmode="numeric"></div>
+  </div>
+  <label>Thành viên đặc biệt</label><div class="chips" data-many="tv"></div>
+  <label for="khnote">Nhu cầu / thói quen (nấu nhiều, tiếp khách, làm việc tại nhà…)</label><textarea id="khnote" maxlength="300"></textarea>
+</div></details>
+
+<details><summary>2. Khu vực thiết kế <span class="n" id="n2"></span></summary><div class="body">
+  <div class="chips" data-many="kv"></div>
+  <label for="kvnote">Yêu cầu riêng từng khu vực</label><textarea id="kvnote" maxlength="400" placeholder="vd: Bếp chữ L có đảo; phòng ngủ cần tủ áo kịch trần"></textarea>
+</div></details>
+
+<details><summary>3. Phong cách <span class="n" id="n3"></span></summary><div class="body">
+  <div class="chips" data-many="pc" data-max="3"></div>
+  <div class="desc" id="pcdesc">Chọn tối đa 3 – phong cách chọn đầu tiên là chính.</div>
+</div></details>
+
+<details><summary>4. Bảng màu <span class="n" id="n4"></span></summary><div class="body">
+  <div id="maus"></div>
+  <button class="add" id="addmau" type="button">+ Thêm màu</button>
+  <label>Bảng màu mẫu (43 bảng, ebook Color Combinations) – chạm để dùng</label>
+  <select id="palnhom"></select>
+  <div id="pals"></div>
+  <label>Kiểu phối màu</label><div class="chips" data-one="hs"></div>
+  <div class="desc" id="hsdesc"></div>
+  <details class="tips" style="background:none;padding:0"><summary style="font-size:13px">Gợi ý chọn màu theo phòng</summary><div id="tips"></div></details>
+</div></details>
+
+<details><summary>5. Vật liệu &amp; ngân sách <span class="n" id="n5"></span></summary><div class="body">
+  <label>Gỗ / bề mặt tủ</label><div class="chips" data-many="go"></div>
+  <label>Mặt bếp / mặt bàn</label><div class="chips" data-many="mat"></div>
+  <label>Tay nắm &amp; kim loại</label><div class="chips" data-many="kl"></div>
+  <label>Sàn – tường – đèn</label><div class="chips" data-many="san"></div>
+  <label for="vlnote">Ghi chú vật liệu / thiết bị</label><textarea id="vlnote" maxlength="250"></textarea>
+  <label>Ngân sách</label><div class="chips" data-one="ns"></div>
+</div></details>
+
+<details><summary>6. Ảnh AI <span class="n" id="n6"></span></summary><div class="body">
+  <label>Số ảnh mỗi khu vực</label><div class="chips" data-one="so"></div>
+  <label>Khung ảnh</label><div class="chips" data-one="khung"></div>
+  <label>Ảnh hiện trạng / SketchUp</label><div class="chips" data-one="guianh"></div>
+  <div class="note">Có ảnh: gửi biểu mẫu xong, gửi ảnh vào chat (ghi chú khu vực ở phần chú thích ảnh nếu được), rồi bấm “Tạo ảnh”. AI giữ bố cục ảnh của bạn và đổi vật liệu – màu theo brief.</div>
+</div></details>
+
+<div id="err"></div>
+<button id="send" type="button">Gửi brief (thử ngoài Telegram)</button>
+
+<script>
+'use strict';
+const PALETTES = [{"id":"cc09","nhom":"Phối màu tổng hợp","ten":"Phòng ngủ xám – be","mau":["#FBEBCA","#E2DACF","#DABFA2","#747570","#303241"]},{"id":"cc10","nhom":"Phối màu tổng hợp","ten":"Phòng tông xám – xanh","mau":["#D2D8E6","#9DA2B6","#2551A8","#02255B","#060411"]},{"id":"cc11","nhom":"Phối màu tổng hợp","ten":"Phòng ngủ tươi sáng","mau":["#BDF9F9","#FBF480","#DDCF0E","#E579AA","#C42C65"]},{"id":"cc12","nhom":"Phối màu tổng hợp","ten":"Phòng ngủ tông đỏ – cam","mau":["#FBD493","#F89F37","#77A1C7","#397A96","#0C1943"]},{"id":"cc13","nhom":"Phối màu tổng hợp","ten":"Tối giản kiểu Scandinavian","mau":["#AC9AC0","#684871","#99948E","#52493A","#634F48"]},{"id":"cc14","nhom":"Phối màu tổng hợp","ten":"Phòng khách xanh đậm","mau":["#D0D5E8","#577CA8","#225C67","#254472","#101D3D"]},{"id":"cc15","nhom":"Phối màu tổng hợp","ten":"Phòng ngủ xanh ngọc","mau":["#AFDBDC","#E2CD8A","#C3C055","#1DAFBC","#053F41"]},{"id":"cc16","nhom":"Phối màu tổng hợp","ten":"Nội thất tông trung tính","mau":["#E3D0A6","#DEC465","#C15D21","#564F3F","#3D4A50"]},{"id":"cc17","nhom":"Phối màu tổng hợp","ten":"Phòng tắm xanh Tiffany","mau":["#D6F1FC","#ECE1E7","#ACD1DA","#3DB0C2","#259191"]},{"id":"cc18","nhom":"Phối màu tổng hợp","ten":"Phòng trẻ em tông be","mau":["#FAE8DA","#E8E1C7","#CABDAA","#F9BDB5","#C3C055"]},{"id":"cc19","nhom":"Phối màu tổng hợp","ten":"Phòng ngủ tông xanh dương","mau":["#BDCAD2","#9F8BC0","#B1357E","#034C75","#1E1E52"]},{"id":"cc20","nhom":"Phối màu tổng hợp","ten":"Phòng khách xanh lá","mau":["#DCE7D6","#CADD9B","#A8D1CD","#71B175","#469077"]},{"id":"cc21","nhom":"Phối màu tổng hợp","ten":"Phòng ăn màu đào","mau":["#FEE2B2","#F0CCAC","#FEBB87","#F0883F","#DF954C"]},{"id":"cc22","nhom":"Phối màu tổng hợp","ten":"Phòng ngủ tím hoa cà","mau":["#F0E2D5","#BCA99B","#C2BF4A","#D7C3C5","#916F8A"]},{"id":"cc23","nhom":"Phối màu tổng hợp","ten":"Tối giản (Minimalism)","mau":["#D5CCC7","#CDB29F","#D14B16","#809E18","#432B21"]},{"id":"cc24","nhom":"Phối màu tổng hợp","ten":"Phòng tắm xanh lá","mau":["#DADBD3","#6EAA60","#718526","#1F6F28","#054C44"]},{"id":"cc25","nhom":"Phối màu tổng hợp","ten":"Phòng khách màu đất son","mau":["#D9E2E1","#AEA594","#FF9049","#9E884C","#B0531A"]},{"id":"cc26","nhom":"Phối màu tổng hợp","ten":"Phòng ngủ tông xám","mau":["#D8D9D4","#ABA398","#676E78","#C24B33","#392E2A"]},{"id":"cc27","nhom":"Phòng ngủ","ten":"Be và xanh ngọc","mau":["#EDECE8","#EFDCCB","#9CC3C2","#60AEB2","#183243"]},{"id":"cc28","nhom":"Phòng ngủ","ten":"Tím hoa cà và xám","mau":["#FAF9F5","#E0C6E3","#B95D9C","#6C46A9","#CCC93E"]},{"id":"cc29","nhom":"Phòng ngủ","ten":"Cam và nâu","mau":["#FAF9F5","#D3D4CF","#DCB276","#EB4B01","#2D241F"]},{"id":"cc30","nhom":"Phòng ngủ","ten":"San hô và be","mau":["#FE9C91","#EE5545","#BDA889","#63250E","#59A4A0"]},{"id":"cc31","nhom":"Phòng ngủ","ten":"Xám và vàng kim","mau":["#FCFBF7","#E5DEC4","#D3AE77","#8F9D9E","#431E0C"]},{"id":"cc32","nhom":"Phòng ngủ","ten":"Xanh ngọc và nâu","mau":["#F7EAD7","#C09B81","#CA6547","#512421","#22A39F"]},{"id":"cc33","nhom":"Phòng ngủ","ten":"Xanh ngọc đậm và vàng kim","mau":["#E7DFD4","#C3AE6B","#7BA7A8","#3E6258","#402F13"]},{"id":"cc34","nhom":"Phòng ngủ","ten":"Trắng, cam và đen","mau":["#F9F9F9","#C4BDAB","#F1AD5C","#AF3212","#1E1E16"]},{"id":"cc35","nhom":"Phòng ngủ","ten":"Cam và xanh dương","mau":["#FCFCF4","#EBE5CB","#93C1B4","#5B7C5F","#CF3101"]},{"id":"cc36","nhom":"Phòng ngủ","ten":"Xanh dương và đỏ","mau":["#F3F7F8","#8EB3DF","#3167A7","#D65142","#492815"]},{"id":"cc37","nhom":"Phòng ngủ","ten":"Vàng chanh và xám","mau":["#F9F8F4","#CAC9C5","#E6D09E","#6D5646","#F8E45F"]},{"id":"cc38","nhom":"Bếp","ten":"Cam và xám","mau":["#DBDBDB","#D5D1C5","#E25C27","#949899","#3A4149"]},{"id":"cc39","nhom":"Bếp","ten":"Vàng và xanh dương","mau":["#F2FAFD","#FDEC00","#F5D49F","#69D3E3","#1D616A"]},{"id":"cc40","nhom":"Bếp","ten":"Đen và trắng","mau":["#EAEBE6","#D9D8D4","#DED0C3","#B9AC9C","#060606"]},{"id":"cc41","nhom":"Bếp","ten":"Tông pastel","mau":["#E3E3DB","#B8D1CB","#EACFBA","#A18361","#BC683A"]},{"id":"cc42","nhom":"Bếp","ten":"Xám và vàng","mau":["#EFE6D7","#BD9A7A","#F8C700","#9B9094","#41332A"]},{"id":"cc43","nhom":"Bếp","ten":"Xanh ngọc và cam","mau":["#E5E5E5","#B7CAC6","#9CB99D","#5F9B91","#CF8A01"]},{"id":"cc44","nhom":"Bếp","ten":"Trắng và vàng","mau":["#F5F5ED","#EEE5E0","#E4AE8A","#FEC400","#9A9A9A"]},{"id":"cc45","nhom":"Bếp","ten":"Xám và hồng","mau":["#E5E5E5","#B4B8B9","#546A77","#C31A41","#2D2D25"]},{"id":"cc46","nhom":"Bếp","ten":"Xanh dương và hồng","mau":["#F2FAFD","#DFC0BD","#C0296C","#3CBEC0","#377D7B"]},{"id":"cc47","nhom":"Bếp","ten":"Be và nâu","mau":["#F5ECE7","#ECCABE","#C59277","#703B2B","#577F99"]},{"id":"cc48","nhom":"Bếp","ten":"Vàng, đỏ và xanh ngọc","mau":["#F3F3F3","#F4BD00","#46AE8D","#AC0000","#1F170C"]},{"id":"cc49","nhom":"Bếp","ten":"Xanh lá và be","mau":["#EAEBE6","#E2DBCB","#DED0C3","#834E24","#417D1B"]},{"id":"cc50","nhom":"Bếp","ten":"Đỏ và xám","mau":["#E3E3DB","#BCC4C7","#C63518","#76594B","#3A4149"]},{"id":"cc51","nhom":"Bếp","ten":"Xanh dương và nâu","mau":["#F5F0EA","#B3B3B3","#9C4E38","#642418","#014670"]}];
+const STYLES = [['Hiện đại','Đường nét gọn, bề mặt phẳng, ít trang trí, vật liệu công nghiệp + gỗ'],['Tối giản','Ít đồ, nhiều khoảng trống, màu trung tính, đồ ẩn tối đa'],['Modern Minimalist','Hiện đại tối giản: mảng khối sạch, tủ âm, đèn hắt'],['Scandinavian','Gỗ sáng, trắng – xám, vải tự nhiên, ấm áp và sáng'],['Japandi','Nhật + Bắc Âu: gỗ, tre, màu đất nhạt, tối giản thiền'],['Japandi Luxe','Japandi cao cấp: veneer gỗ tối, đá, kim loại mờ'],['Wabi Sabi','Vẻ đẹp không hoàn hảo: tường thô, gốm, vải lanh, màu đất'],['Modern Organic','Hiện đại + vật liệu tự nhiên, đường cong mềm, cây xanh'],['Modern Organic Luxe','Organic sang trọng: đá tự nhiên, gỗ vân lớn, vải cao cấp'],['Indochine','Gạch bông, mây tre, gỗ tối, hoạ tiết Á Đông, vàng – xanh rêu'],['Tân cổ điển','Phào chỉ, đối xứng, màu sáng, kim loại vàng tiết chế'],['Cổ điển','Phào chỉ cầu kỳ, đồ gỗ chạm, rèm nặng, màu đậm ấm'],['Luxury','Đá marble, kim loại, da, đèn thiết kế, tông trầm'],['Industrial','Bê tông, gạch thô, thép đen, ống lộ, gỗ cũ'],['Bohemian','Nhiều hoạ tiết, mây tre, thảm dệt, cây xanh, màu ấm'],['Địa Trung Hải','Trắng + xanh biển, vòm cong, gạch men, gỗ mộc'],['Tropical','Lá xanh, mây tre, gỗ, thoáng mát, hoạ tiết lá'],['Retro / Vintage','Màu nổi thập niên 60–70, đồ cũ, hoa văn hình học'],['Art Deco','Hình học đối xứng, đồng vàng, nhung, màu đậm sang'],['Mid-century Modern','Đồ gỗ chân vát, đường cong 1950s, màu mù tạt – xanh rêu'],['Traditional','Đồ gỗ tối, vải hoa văn, đối xứng, ấm và cổ điển'],['Modern Urban','Tông trung tính đậm, kim loại, nghệ thuật'],['Coastal','Trắng – xanh biển – cát, vải lanh, gỗ bạc màu'],['Contemporary','Theo xu hướng, đường cong, tương phản đen – trắng'],['Transitional','Giao thoa cổ điển – hiện đại, trung tính'],['Craftsman','Gỗ tự nhiên thủ công, kết cấu lộ, màu đất'],['French Country','Gỗ sơn cũ, vải hoa nhỏ, màu phấn'],['Tuscan','Đá, gỗ thô, đất nung, vàng – đỏ đất'],['Farmhouse','Gỗ thô, trắng, bồn rửa sứ, ấm cúng'],['Glam','Nhung, gương, pha lê, vàng kim, màu ngọc'],['Rustic','Gỗ thô, đá, da, tông nâu ấm'],['Shabby Chic','Đồ sơn trắng cũ, hoa hồng, pastel, ren'],['Southwestern','Đất nung, hoạ tiết thổ dân, xương rồng'],['Hàn Quốc','Tông trắng kem – be, đồ bo tròn, nhẹ nhàng']];
+const OPTS = {
+  loai: ['Căn hộ','Nhà phố','Biệt thự','Văn phòng','Showroom / cửa hàng','Khác'],
+  tv: ['Người già','Trẻ nhỏ','Thú cưng','Làm việc tại nhà','Hay tiếp khách'],
+  kv: ['Toàn bộ nhà','Phòng khách','Bếp & phòng ăn','Phòng ngủ master','Phòng ngủ con','Phòng làm việc','Phòng thay đồ','Phòng tắm / WC','Sảnh / hành lang','Ban công','Phòng thờ','Khu vực thương mại'],
+  pc: STYLES.map(s => s[0]),
+  hs: ['Đơn sắc','Tương đồng','Bổ túc (tương phản)','Bổ túc kép','Bổ túc xen kẽ','Bộ ba','Bốn màu (chữ nhật)','Hình vuông','Trung tính có điểm nhấn'],
+  go: ['Gỗ óc chó','Gỗ sồi','Gỗ tần bì','Veneer gỗ','MDF phủ Melamine','Laminate','Acrylic bóng','Sơn PU bệt','Nhôm / kính'],
+  mat: ['Đá Quartz','Đá granite','Đá marble','Đá nung kết','Mặt gỗ'],
+  kl: ['Tay nắm âm','Nhôm định hình','Đồng / vàng','Đen mờ','Inox'],
+  san: ['Sàn gỗ','Gạch vân đá','Gạch bông','Lam gỗ','Đá ốp tường','Giấy dán tường','LED hắt','Đèn thả','Đèn rọi ray'],
+  ns: ['Dưới 100 tr','100–300 tr','300–600 tr','600 tr – 1 tỷ','Trên 1 tỷ','Chưa rõ'],
+  so: ['1','2','3'], khung: ['4:5','1:1','16:9','9:16'], guianh: ['Không','Có – gửi sau'],
+};
+const HS_DESC = ['Một màu, nhiều sắc độ đậm – nhạt; an toàn, yên bình','Các màu kề nhau trên vòng màu; dịu và phong phú','Hai màu đối nhau; nổi bật, một màu chiếm phần lớn','Hai màu kề nhau cùng hai màu bổ túc; mảng lớn dùng màu dịu nhất','Một màu với hai màu cạnh màu bổ túc; hài hoà có tương phản','Ba màu cách đều; phong phú nhưng dễ rối','Hai cặp bổ túc; nên để một màu dẫn dắt','Bốn màu cách đều; rực rỡ, cần nhiều mảng trung tính','Phần lớn trung tính, một phần nhỏ màu tươi làm điểm nhấn'];
+const NGHIA = {do:['Đỏ','năng lượng, đam mê; dùng làm điểm nhấn'],cam:['Cam','vui tươi, ấm áp; hợp bếp'],vang:['Vàng','nắng, vui vẻ, sáng tạo'],xanhla:['Xanh lá','thiên nhiên, tươi mát, hài hoà'],xanhduong:['Xanh dương','tin cậy, bình yên, thư giãn'],tim:['Tím','sang trọng, sáng tạo; tím nhạt hợp phòng ngủ'],hong:['Hồng','dịu dàng, lãng mạn'],nau:['Nâu / gỗ','mộc mạc, vững chãi, ấm'],be:['Be / kem','trung tính ấm, dễ phối – làm nền'],xam:['Xám','điềm tĩnh; nền cho màu nhấn'],trang:['Trắng','sạch sẽ, nới rộng không gian'],den:['Đen','thanh lịch, quyền lực – dùng tiết chế']};
+const TIPS = [['Phòng khách','Màu trung tính, sáng hoặc dịu; thêm màu tươi ở chi tiết.'],['Bếp','Xanh lá, cam, be, vàng giúp vui vẻ, ngon miệng; tránh màu quá gắt.'],['Phòng ngủ','Tông dịu, êm; tím hợp. Đỏ rực khó ngủ.'],['Phòng tắm','Trắng thêm xanh nhạt – sạch sẽ.'],['Kích thước','Phòng nhỏ: tông lạnh sáng cho rộng; phòng lớn: tông ấm cho ấm cúng.'],['Nguyên tắc','Một màu chủ đạo dẫn dắt (≈60%), phụ ≈30%, nhấn ≈10%.']];
+const ROLES = [['cd','Chủ đạo'],['phu','Phụ'],['nhan','Nhấn']];
+function nhom(hex){const n=parseInt(hex.slice(1),16),r=(n>>16)/255,g=(n>>8&255)/255,b=(n&255)/255,mx=Math.max(r,g,b),mn=Math.min(r,g,b),l=(mx+mn)/2,d=mx-mn,s=d===0?0:d/(1-Math.abs(2*l-1));let h=0;if(d)h=mx===r?60*(((g-b)/d)%6):mx===g?60*((b-r)/d+2):60*((r-g)/d+4);if(h<0)h+=360;if(l>.93)return'trang';if(l<.13)return'den';if(s<.12)return'xam';if(h>=15&&h<60&&(d<=.32||l<.35))return l>.6?'be':'nau';if(h<15||h>=345)return l>.7?'hong':'do';if(h<40)return'cam';if(h<70)return'vang';if(h<170)return'xanhla';if(h<255)return'xanhduong';if(h<300)return'tim';return l>.6?'hong':'do'}
+
+const tg = window.Telegram && Telegram.WebApp && Telegram.WebApp.initData ? Telegram.WebApp : null;
+const st = {one:{so:'2',khung:'4:5',guianh:'Không'}, many:{}, mau:[['#E8DCC8','cd'],['#8B5E3C','phu'],['#2F3437','nhan']]};
+const $ = s => document.querySelector(s);
+
+document.querySelectorAll('[data-one],[data-many]').forEach(box => {
+  const key = box.dataset.one || box.dataset.many, many = !!box.dataset.many, max = +box.dataset.max || 99;
+  if (many) st.many[key] = st.many[key] || [];
+  OPTS[key].forEach((t, i) => {
+    const c = document.createElement('span'); c.className = 'chip'; c.textContent = t; c.tabIndex = 0;
+    if (!many && st.one[key] === t) c.classList.add('on');
+    c.onclick = () => {
+      if (many) {
+        const a = st.many[key], k = a.indexOf(t);
+        if (k >= 0) a.splice(k, 1); else { if (a.length >= max) return toast(`Tối đa ${max} lựa chọn`); a.push(t); }
+        c.classList.toggle('on', k < 0);
+        if (key === 'pc') $('#pcdesc').textContent = a.length ? a.map((x, j) => `${j ? '' : '★ '}${x}: ${STYLES.find(s => s[0] === x)[1]}`).join(' · ') : 'Chọn tối đa 3 – phong cách chọn đầu tiên là chính.';
+      } else {
+        st.one[key] = st.one[key] === t ? '' : t;
+        box.querySelectorAll('.chip').forEach(x => x.classList.toggle('on', x.textContent === st.one[key]));
+        if (key === 'hs') $('#hsdesc').textContent = st.one.hs ? HS_DESC[OPTS.hs.indexOf(st.one.hs)] : '';
+      }
+      tg && tg.HapticFeedback && tg.HapticFeedback.selectionChanged();
+      counts();
+    };
+    box.appendChild(c);
+  });
+});
+
+function renderMau() {
+  const box = $('#maus'); box.innerHTML = '';
+  st.mau.forEach((m, i) => {
+    const r = document.createElement('div'); r.className = 'mau';
+    const n = NGHIA[nhom(m[0])];
+    r.innerHTML = `<input type="color" value="${m[0]}" aria-label="Màu ${i + 1}"><div><span class="hex">${m[0].toUpperCase()}</span> · <b>${n[0]}</b><div class="y">${n[1]}</div><div class="roles">${ROLES.map(x => `<span class="chip${m[1] === x[0] ? ' on' : ''}" data-r="${x[0]}">${x[1]}</span>`).join('')}</div></div><button class="x" type="button" aria-label="Xoá màu">×</button>`;
+    r.querySelector('input').oninput = e => { m[0] = e.target.value; renderMau(); };
+    r.querySelectorAll('[data-r]').forEach(c => c.onclick = () => { m[1] = c.dataset.r; renderMau(); });
+    r.querySelector('.x').onclick = () => { st.mau.splice(i, 1); renderMau(); };
+    box.appendChild(r);
+  });
+  counts();
+}
+$('#addmau').onclick = () => { if (st.mau.length >= 8) return toast('Tối đa 8 màu'); st.mau.push(['#CCCCCC', st.mau.length ? 'phu' : 'cd']); renderMau(); };
+
+const nhoms = [...new Set(PALETTES.map(p => p.nhom))];
+$('#palnhom').innerHTML = nhoms.map(n => `<option>${n}</option>`).join('');
+function renderPals() {
+  const n = $('#palnhom').value;
+  $('#pals').innerHTML = PALETTES.filter(p => p.nhom === n).map(p => `<div class="palrow" data-id="${p.id}"><span>${p.ten}</span><div class="pal">${p.mau.map(c => `<i style="background:${c}"></i>`).join('')}</div></div>`).join('');
+  $('#pals').querySelectorAll('.palrow').forEach(r => r.onclick = () => {
+    const p = PALETTES.find(x => x.id === r.dataset.id);
+    st.mau = p.mau.map((c, i) => [c, i === 0 ? 'cd' : i === p.mau.length - 1 ? 'nhan' : 'phu']);
+    st.pal = p.ten; renderMau(); toast('Đã dùng bảng “' + p.ten + '” – chỉnh vai trò từng màu nếu cần');
+  });
+}
+$('#palnhom').onchange = renderPals;
+$('#tips').innerHTML = TIPS.map(t => `<p><b>${t[0]}:</b> ${t[1]}</p>`).join('');
+
+function counts() {
+  $('#n1').textContent = [$('#ten').value ? '✓' : '', st.one.loai].filter(Boolean).join(' ');
+  $('#n2').textContent = st.many.kv.length ? st.many.kv.length + ' khu vực' : '';
+  $('#n3').textContent = st.many.pc.join(', ');
+  $('#n4').textContent = st.mau.length + ' màu';
+  $('#n5').textContent = st.one.ns || '';
+  $('#n6').textContent = `${st.one.so} ảnh · ${st.one.khung}`;
+  const ok = st.many.kv.length > 0 && (st.many.pc.length > 0 || st.mau.length > 0);
+  if (tg) { ok ? tg.MainButton.enable() : tg.MainButton.disable(); tg.MainButton.color = ok ? tg.themeParams.button_color || '#d97757' : '#777'; }
+}
+document.querySelectorAll('input[type=text],input[type=number],textarea').forEach(e => e.addEventListener('input', counts));
+
+function toast(t) { if (tg && tg.showAlert && tg.isVersionAtLeast && tg.isVersionAtLeast('6.2')) tg.showAlert(t); else { $('#err').textContent = t; setTimeout(() => $('#err').textContent = '', 2500); } }
+
+function payload() {
+  const v = id => $('#' + id).value.trim();
+  return { v: 1, kh: { ten: v('ten'), loai: st.one.loai || '', dt: v('dt'), nguoi: v('nguoi'), tv: st.many.tv, note: v('khnote') },
+    kv: st.many.kv, kvnote: v('kvnote'), pc: st.many.pc, mau: st.mau, pal: st.pal || '', hs: st.one.hs || '',
+    vl: { go: st.many.go, mat: st.many.mat, kl: st.many.kl, san: st.many.san, note: v('vlnote') }, ns: st.one.ns || '',
+    anh: { so: +st.one.so || 2, khung: st.one.khung || '4:5', gui: st.one.guianh === 'Có – gửi sau' } };
+}
+function submit() {
+  const p = payload();
+  if (!p.kv.length) return toast('Chọn ít nhất 1 khu vực thiết kế');
+  if (!p.pc.length && !p.mau.length) return toast('Chọn phong cách hoặc bảng màu');
+  const s = JSON.stringify(p);
+  if (new Blob([s]).size > 4000) return toast('Ghi chú quá dài – rút gọn bớt rồi gửi lại');
+  if (tg) tg.sendData(s); else { console.log(s); $('#err').textContent = 'Thử ngoài Telegram – dữ liệu (' + new Blob([s]).size + ' byte): ' + s.slice(0, 300) + '…'; }
+}
+
+renderMau(); renderPals(); counts();
+if (tg) {
+  tg.ready(); tg.expand();
+  tg.MainButton.setText('Gửi brief'); tg.MainButton.show(); tg.MainButton.onClick(submit); counts();
+} else { $('#send').style.display = 'block'; $('#send').onclick = submit; }
+</script>
+</body>
+</html>
