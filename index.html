@@ -92,13 +92,19 @@ textarea{min-height:64px;resize:vertical}
   <details class="tips" style="background:none;padding:0"><summary style="font-size:13px">Gợi ý chọn màu theo phòng</summary><div id="tips"></div></details>
 </div></details>
 
-<details><summary>5. Vật liệu &amp; ngân sách <span class="n" id="n5"></span></summary><div class="body">
+<details><summary>5. Vật liệu, ngân sách &amp; tiến độ <span class="n" id="n5"></span></summary><div class="body">
   <label>Gỗ / bề mặt tủ</label><div class="chips" data-many="go"></div>
   <label>Mặt bếp / mặt bàn</label><div class="chips" data-many="mat"></div>
   <label>Tay nắm &amp; kim loại</label><div class="chips" data-many="kl"></div>
   <label>Sàn – tường – đèn</label><div class="chips" data-many="san"></div>
   <label for="vlnote">Ghi chú vật liệu / thiết bị</label><textarea id="vlnote" maxlength="250"></textarea>
   <label>Ngân sách</label><div class="chips" data-one="ns"></div>
+  <label>Thời gian dự kiến</label>
+  <div class="row2">
+    <div><label for="bd" style="margin-top:0">Bắt đầu</label><input id="bd" type="date"></div>
+    <div><label for="kt" style="margin-top:0">Kết thúc</label><input id="kt" type="date"></div>
+  </div>
+  <div class="desc" id="tgdesc"></div>
 </div></details>
 
 <details><summary>6. Ảnh AI <span class="n" id="n6"></span></summary><div class="body">
@@ -213,11 +219,15 @@ function counts() {
   $('#n2').textContent = st.many.kv.length ? st.many.kv.length + ' khu vực' : '';
   $('#n3').textContent = st.many.pc.join(', ');
   $('#n5').textContent = st.one.ns || '';
+  const bd = $('#bd').value, kt = $('#kt').value;
+  const d = bd && kt ? Math.round((new Date(kt) - new Date(bd)) / 864e5) : null;
+  $('#tgdesc').textContent = d == null ? '' : d < 0 ? '⚠ Ngày kết thúc trước ngày bắt đầu' : `Thời gian thực hiện: ${d} ngày (~${Math.round(d / 7)} tuần)`;
+  $('#tgdesc').style.color = d != null && d < 0 ? '#e5534b' : '';
   $('#n6').textContent = `${st.one.so} ảnh · ${st.one.khung}`;
   const ok = st.many.kv.length > 0 && (st.many.pc.length > 0 || st.mau.length > 0);
   if (tg) { ok ? tg.MainButton.enable() : tg.MainButton.disable(); tg.MainButton.color = ok ? tg.themeParams.button_color || '#d97757' : '#777'; }
 }
-document.querySelectorAll('input[type=text],input[type=number],textarea').forEach(e => e.addEventListener('input', counts));
+document.querySelectorAll('input[type=text],input[type=number],input[type=date],textarea').forEach(e => e.addEventListener('input', counts));
 
 function toast(t) { if (tg && tg.showAlert && tg.isVersionAtLeast && tg.isVersionAtLeast('6.2')) tg.showAlert(t); else { $('#err').textContent = t; setTimeout(() => $('#err').textContent = '', 2500); } }
 
@@ -225,13 +235,14 @@ function payload() {
   const v = id => $('#' + id).value.trim();
   return { v: 1, kh: { ten: v('ten'), loai: st.one.loai || '', dt: v('dt'), nguoi: v('nguoi'), tv: st.many.tv, note: v('khnote') },
     kv: st.many.kv, kvnote: v('kvnote'), pc: st.many.pc, mau: st.mau, pal: st.pal || '', hs: st.one.hs || '',
-    vl: { go: st.many.go, mat: st.many.mat, kl: st.many.kl, san: st.many.san, note: v('vlnote') }, ns: st.one.ns || '',
+    vl: { go: st.many.go, mat: st.many.mat, kl: st.many.kl, san: st.many.san, note: v('vlnote') }, ns: st.one.ns || '', tg: { bd: v('bd'), kt: v('kt') },
     anh: { so: +st.one.so || 2, khung: st.one.khung || '4:5', gui: st.one.guianh === 'Có – gửi sau' } };
 }
 function submit() {
   const p = payload();
   if (!p.kv.length) return toast('Chọn ít nhất 1 khu vực thiết kế');
   if (!p.pc.length && !p.mau.length) return toast('Chọn phong cách hoặc bảng màu');
+  if (p.tg.bd && p.tg.kt && p.tg.kt < p.tg.bd) return toast('Ngày kết thúc đang trước ngày bắt đầu');
   const s = JSON.stringify(p);
   if (new Blob([s]).size > 4000) return toast('Ghi chú quá dài – rút gọn bớt rồi gửi lại');
   if (tg) tg.sendData(s); else { console.log(s); $('#err').textContent = 'Thử ngoài Telegram – dữ liệu (' + new Blob([s]).size + ' byte): ' + s.slice(0, 300) + '…'; }
