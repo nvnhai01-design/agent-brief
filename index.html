@@ -29,7 +29,11 @@ textarea{min-height:64px;resize:vertical}
 .chip small{opacity:.75}
 .desc{font-size:12.5px;color:var(--hint);margin-top:6px;min-height:1em}
 .row2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.mau{display:grid;grid-template-columns:44px 1fr auto;gap:8px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line)}
+.mau{display:grid;grid-template-columns:44px 1fr auto auto;gap:8px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line)}
+.mau .pt{width:64px;display:flex;align-items:center;gap:2px}
+.mau .pt input{width:46px;padding:7px 4px;text-align:right}
+.pbar{display:flex;height:56px;border-radius:10px;overflow:hidden;border:1px solid var(--line)}
+.pbar i{display:flex;align-items:flex-end;padding:4px 6px;font:600 12px/1 inherit;font-style:normal;min-width:2px;overflow:hidden;white-space:nowrap}
 .mau input[type=color]{width:44px;height:44px;border:none;border-radius:10px;padding:0;background:none}
 .mau .hex{font-family:ui-monospace,Consolas,monospace;font-size:13px}
 .mau .y{font-size:12px;color:var(--hint)}
@@ -75,6 +79,11 @@ textarea{min-height:64px;resize:vertical}
 <details><summary>4. Bảng màu <span class="n" id="n4"></span></summary><div class="body">
   <div id="maus"></div>
   <button class="add" id="addmau" type="button">+ Thêm màu</button>
+  <label>Bảng màu sau phối (tỉ lệ diện tích)</label>
+  <div class="pbar" id="pbar"></div>
+  <div class="desc" id="psum"></div>
+  <div class="chips" style="margin-top:8px"><span class="chip" id="psort">Sắp theo tỉ lệ</span><span class="chip" id="pauto">Chia lại tỉ lệ gợi ý</span></div>
+  <div class="desc">Gợi ý 60 – 30 – 10 (chủ đạo – phụ – nhấn); mảng lớn nhất nên là màu dịu nhất.</div>
   <label>Bảng màu mẫu (43 bảng, ebook Color Combinations) – chạm để dùng</label>
   <select id="palnhom"></select>
   <div id="pals"></div>
@@ -127,7 +136,10 @@ function nhom(hex){const n=parseInt(hex.slice(1),16),r=(n>>16)/255,g=(n>>8&255)/
 
 // Mở bằng nút bàn phím: Telegram KHÔNG cấp initData (vẫn sendData được) → nhận biết theo platform
 const tg = window.Telegram && Telegram.WebApp && Telegram.WebApp.platform && Telegram.WebApp.platform !== 'unknown' ? Telegram.WebApp : null;
-const st = {one:{so:'2',khung:'4:5',guianh:'Không'}, many:{}, mau:[['#E8DCC8','cd'],['#8B5E3C','phu'],['#2F3437','nhan']]};
+const st = {one:{so:'2',khung:'4:5',guianh:'Không'}, many:{}, mau:[['#E8DCC8','cd',60],['#8B5E3C','phu',30],['#2F3437','nhan',10]]};
+// Tỉ lệ gợi ý theo số màu (như app D.I.M): 3 màu 60-30-10, 4 màu 60-25-10-5, 5 màu 60-25-7-5-3
+function goiY(n){ if(n<=1)return[100]; if(n===2)return[70,30]; if(n===3)return[60,30,10]; if(n===4)return[60,25,10,5]; if(n===5)return[60,25,7,5,3]; const r=[60,20]; let con=20, k=n-2; for(let i=0;i<k;i++){ const v=i===k-1?con:Math.max(1,Math.round(con/(k-i)*1.2)); r.push(v); con-=v; } return r; }
+const lum = h => { const n=parseInt(h.slice(1),16); return (0.2126*(n>>16)+0.7152*(n>>8&255)+0.0722*(n&255))/255; };
 const $ = s => document.querySelector(s);
 
 document.querySelectorAll('[data-one],[data-many]').forEach(box => {
@@ -159,15 +171,27 @@ function renderMau() {
   st.mau.forEach((m, i) => {
     const r = document.createElement('div'); r.className = 'mau';
     const n = NGHIA[nhom(m[0])];
-    r.innerHTML = `<input type="color" value="${m[0]}" aria-label="Màu ${i + 1}"><div><span class="hex">${m[0].toUpperCase()}</span> · <b>${n[0]}</b><div class="y">${n[1]}</div><div class="roles">${ROLES.map(x => `<span class="chip${m[1] === x[0] ? ' on' : ''}" data-r="${x[0]}">${x[1]}</span>`).join('')}</div></div><button class="x" type="button" aria-label="Xoá màu">×</button>`;
-    r.querySelector('input').oninput = e => { m[0] = e.target.value; renderMau(); };
+    r.innerHTML = `<input type="color" value="${m[0]}" aria-label="Màu ${i + 1}"><div><span class="hex">${m[0].toUpperCase()}</span> · <b>${n[0]}</b><div class="y">${n[1]}</div><div class="roles">${ROLES.map(x => `<span class="chip${m[1] === x[0] ? ' on' : ''}" data-r="${x[0]}">${x[1]}</span>`).join('')}</div></div><label class="pt"><input type="number" min="0" max="100" inputmode="numeric" value="${m[2] ?? 0}" aria-label="Tỉ lệ màu ${i + 1}">%</label><button class="x" type="button" aria-label="Xoá màu">×</button>`;
+    r.querySelector('input[type=color]').oninput = e => { m[0] = e.target.value; renderMau(); };
+    r.querySelector('.pt input').oninput = e => { m[2] = Math.max(0, Math.min(100, +e.target.value || 0)); renderBar(); };
     r.querySelectorAll('[data-r]').forEach(c => c.onclick = () => { m[1] = c.dataset.r; renderMau(); });
-    r.querySelector('.x').onclick = () => { st.mau.splice(i, 1); renderMau(); };
+    r.querySelector('.x').onclick = () => { st.mau.splice(i, 1); chiaLai(); renderMau(); };
     box.appendChild(r);
   });
+  renderBar();
   counts();
 }
-$('#addmau').onclick = () => { if (st.mau.length >= 8) return toast('Tối đa 8 màu'); st.mau.push(['#CCCCCC', st.mau.length ? 'phu' : 'cd']); renderMau(); };
+function renderBar() {
+  const tong = st.mau.reduce((t, m) => t + (+m[2] || 0), 0);
+  $('#pbar').innerHTML = st.mau.map(m => `<i style="flex:${Math.max(+m[2] || 0, 0.01)};background:${m[0]};color:${lum(m[0]) > 0.6 ? '#222' : '#fff'}">${+m[2] || 0}%</i>`).join('');
+  $('#psum').textContent = st.mau.length ? (Math.abs(tong - 100) > 0.5 ? `⚠ Tổng tỉ lệ ${tong}% (nên = 100%)` : `Tổng 100% ✓`) : '';
+  $('#psum').style.color = Math.abs(tong - 100) > 0.5 ? '#e5534b' : '';
+  $('#n4').textContent = st.mau.length + ' màu' + (st.mau.length ? ` · ${st.mau.map(m => (+m[2] || 0)).join('–')}` : '');
+}
+const chiaLai = () => { const g = goiY(st.mau.length); st.mau.forEach((m, i) => m[2] = g[i] || 0); };
+$('#addmau').onclick = () => { if (st.mau.length >= 8) return toast('Tối đa 8 màu'); st.mau.push(['#CCCCCC', st.mau.length ? 'phu' : 'cd', 0]); chiaLai(); renderMau(); };
+$('#psort').onclick = () => { st.mau.sort((a, b) => (+b[2] || 0) - (+a[2] || 0)); renderMau(); };
+$('#pauto').onclick = () => { st.mau.sort((a, b) => (+b[2] || 0) - (+a[2] || 0)); chiaLai(); renderMau(); };
 
 const nhoms = [...new Set(PALETTES.map(p => p.nhom))];
 $('#palnhom').innerHTML = nhoms.map(n => `<option>${n}</option>`).join('');
@@ -176,7 +200,8 @@ function renderPals() {
   $('#pals').innerHTML = PALETTES.filter(p => p.nhom === n).map(p => `<div class="palrow" data-id="${p.id}"><span>${p.ten}</span><div class="pal">${p.mau.map(c => `<i style="background:${c}"></i>`).join('')}</div></div>`).join('');
   $('#pals').querySelectorAll('.palrow').forEach(r => r.onclick = () => {
     const p = PALETTES.find(x => x.id === r.dataset.id);
-    st.mau = p.mau.map((c, i) => [c, i === 0 ? 'cd' : i === p.mau.length - 1 ? 'nhan' : 'phu']);
+    const g = goiY(p.mau.length);
+    st.mau = p.mau.map((c, i) => [c, i === 0 ? 'cd' : i === p.mau.length - 1 ? 'nhan' : 'phu', g[i]]);
     st.pal = p.ten; renderMau(); toast('Đã dùng bảng “' + p.ten + '” – chỉnh vai trò từng màu nếu cần');
   });
 }
@@ -187,7 +212,6 @@ function counts() {
   $('#n1').textContent = [$('#ten').value ? '✓' : '', st.one.loai].filter(Boolean).join(' ');
   $('#n2').textContent = st.many.kv.length ? st.many.kv.length + ' khu vực' : '';
   $('#n3').textContent = st.many.pc.join(', ');
-  $('#n4').textContent = st.mau.length + ' màu';
   $('#n5').textContent = st.one.ns || '';
   $('#n6').textContent = `${st.one.so} ảnh · ${st.one.khung}`;
   const ok = st.many.kv.length > 0 && (st.many.pc.length > 0 || st.mau.length > 0);
